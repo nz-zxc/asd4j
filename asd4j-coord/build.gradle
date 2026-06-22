@@ -1,1 +1,14 @@
 // asd4j-coord module
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':asd4j-schema')
+
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
