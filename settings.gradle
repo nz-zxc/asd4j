@@ -1,0 +1,9 @@
+rootProject.name = 'asd4j'
+
+include 'asd4j-schema'
+include 'asd4j-io'
+include 'asd4j-control'
+include 'asd4j-coord'
+include 'asd4j-event'
+include 'asd4j-instruct'
+include 'asd4j-insight'
