@@ -6,11 +6,11 @@ import nz.zxc.asd.schema.Quality;
 import nz.zxc.asd.schema.PublishReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.CommandLineRunner;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StartupPublisher implements CommandLineRunner {
+public class StartupPublisher {
 
     private static final Logger log =
             LoggerFactory.getLogger(StartupPublisher.class);
@@ -21,12 +21,12 @@ public class StartupPublisher implements CommandLineRunner {
         this.publisher = publisher;
     }
 
-    @Override
-    public void run(String... args) throws Exception {
+    @Scheduled(fixedRate = 30000, initialDelay = 1000)
+    public void scan() {
 
-        log.info("Publishing startup test event...");
+        log.debug("Scan cycle starting...");
 
-        Event event = Event.builder()
+        publisher.publish("asd4j.telemetry", Event.builder()
                 .eventType(EventType.TELEMETRY)
                 .path("/dev/office/temperature")
                 .siteId("dev-local")
@@ -34,10 +34,28 @@ public class StartupPublisher implements CommandLineRunner {
                 .unit("degC")
                 .quality(Quality.OK)
                 .publishReason(PublishReason.HEARTBEAT)
-                .build();
+                .build());
 
-        publisher.publish("asd4j.telemetry", event);
+        publisher.publish("asd4j.telemetry", Event.builder()
+                .eventType(EventType.TELEMETRY)
+                .path("/dev/office/co2")
+                .siteId("dev-local")
+                .value(850)
+                .unit("ppm")
+                .quality(Quality.OK)
+                .publishReason(PublishReason.HEARTBEAT)
+                .build());
 
-        log.info("Startup event published.");
+        publisher.publish("asd4j.telemetry", Event.builder()
+                .eventType(EventType.TELEMETRY)
+                .path("/dev/office/lux")
+                .siteId("dev-local")
+                .value(420)
+                .unit("lux")
+                .quality(Quality.OK)
+                .publishReason(PublishReason.HEARTBEAT)
+                .build());
+
+        log.debug("Scan cycle complete — 3 points published.");
     }
 }

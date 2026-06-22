@@ -10,6 +10,28 @@ spring:
       properties:
         spring.json.add.type.headers: false
 
+server:
+  port: 8090
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: asd4j-coord
+    description: ASD Building Intelligence — Coordinator Layer
+    version: 0.1.0-SNAPSHOT
+    layer: coordinator
+
 logging:
   level:
     nz.zxc: DEBUG
