@@ -13,14 +13,14 @@ This guide gets a full asd4j development environment running on your local machi
 
 ## Clone the Repository
 
-```bash
+```
 git clone https://github.com/nz-zxc/asd4j
 cd asd4j
 ```
 
 ## Build the Project
 
-```bash
+```
 ./gradlew build
 ```
 
@@ -28,27 +28,35 @@ cd asd4j
 
 Redpanda provides the Kafka-compatible event backbone. Two containers are required — the broker and the console UI.
 
+Redpanda is configured with two listeners to serve two different audiences:
+
+- **PLAINTEXT** on port 9092 — for asd4j Java services running on the host (Windows)
+- **DOCKER** on port 19092 — for the Redpanda Console container running inside Docker
+
+This is necessary because `localhost` resolves differently on the Windows host versus inside a Docker container. Without two listeners, you can serve one audience but not both simultaneously.
+
 ### Start Redpanda Broker
 
-```bash
-docker run -d --name redpanda \
-  -p 9092:9092 \
-  -p 9644:9644 \
-  docker.redpanda.com/redpandadata/redpanda:latest \
-  redpanda start \
-  --overprovisioned \
-  --kafka-addr PLAINTEXT://0.0.0.0:9092 \
-  --advertise-kafka-addr PLAINTEXT://redpanda:9092
+```
+docker run -d --name redpanda -p 9092:9092 -p 19092:19092 -p 9644:9644 docker.redpanda.com/redpandadata/redpanda:latest redpanda start --overprovisioned --kafka-addr PLAINTEXT://0.0.0.0:9092,DOCKER://0.0.0.0:19092 --advertise-kafka-addr PLAINTEXT://localhost:9092,DOCKER://redpanda:19092
 ```
 
 ### Start Redpanda Console
 
-```bash
-docker run -d --name redpanda-console \
-  -p 8080:8080 \
-  --link redpanda \
-  -e KAFKA_BROKERS=redpanda:9092 \
-  docker.redpanda.com/redpandadata/console:latest
+```
+docker run -d --name redpanda-console -p 8080:8080 --link redpanda -e KAFKA_BROKERS=redpanda:19092 docker.redpanda.com/redpandadata/console:latest
+```
+
+The console connects via the DOCKER listener on port 19092 using the container name `redpanda`, which Docker resolves internally via `--link`.
+
+### asd4j Services (application.yml)
+
+asd4j Java services connect via the PLAINTEXT listener on the host:
+
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
 ```
 
 ### Verify
@@ -62,7 +70,7 @@ You should see:
 
 ### Create Development Topics
 
-Via the console UI (Topics → Create topic) or via rpk:
+Via the console UI (Topics → Create topic):
 
 | Topic | Partitions | Replicas | Purpose |
 |-------|-----------|---------|---------|
@@ -76,24 +84,17 @@ Via the console UI (Topics → Create topic) or via rpk:
 
 ### Stop Redpanda
 
-```bash
-docker stop redpanda redpanda-console
-docker rm redpanda redpanda-console
+```
+docker stop redpanda redpanda-console && docker rm redpanda redpanda-console
 ```
 
-### Restart Redpanda (existing containers)
+### Restart (existing containers)
 
-```bash
-docker start redpanda
-docker start redpanda-console
+```
+docker start redpanda && docker start redpanda-console
 ```
 
 ## Notes
-
-### Windows
-The `--advertise-kafka-addr PLAINTEXT://redpanda:9092` flag is required on Windows
-so the console container can reach the broker container by name rather than
-attempting to use localhost (which resolves differently inside Docker).
 
 ### Developer mode
 The `--overprovisioned` flag enables Redpanda developer mode. This bypasses
@@ -104,11 +105,12 @@ production checks for memory and CPU allocation.
 
 ### Port reference
 
-| Port | Service | Notes |
-|------|---------|-------|
-| 9092 | Kafka API | Used by asd4j-coord, asd4j-event, asd4j-insight |
-| 9644 | Redpanda Admin API | Cluster health and configuration |
-| 8080 | Redpanda Console | Browser UI for topics and messages |
+| Port | Listener | Used by |
+|------|----------|---------|
+| 9092 | PLAINTEXT | asd4j Java services on Windows host |
+| 19092 | DOCKER | Redpanda Console container |
+| 9644 | Admin API | Cluster health and configuration |
+| 8080 | Console UI | Browser |
 
 ## Architecture
 
